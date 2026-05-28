@@ -3,6 +3,8 @@ import { useUIStore } from './store/uiStore'
 import { useMarketStore } from './store/marketStore'
 import { useOrderStore } from './store/orderStore'
 import { useAgentLog } from './hooks/useAgentLog'
+import { usePriceStream } from './hooks/usePriceStream'
+import { useOrderStream } from './hooks/useOrderStream'
 import api from './api/client'
 import TradingChart from './components/chart/TradingChart'
 import ScreenerPanel from './components/screener/ScreenerPanel'
@@ -19,6 +21,8 @@ export default function App() {
   const { symbol, timeframe, setCandles, setPrice } = useMarketStore()
   const { setOrders, setAccount } = useOrderStore()
   const agentLogs = useAgentLog()
+  usePriceStream()
+  useOrderStream()
   const [settings, setSettings] = useState<any>(null)
 
   // Poll account + orders every 5s

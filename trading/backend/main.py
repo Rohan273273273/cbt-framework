@@ -98,8 +98,12 @@ app.include_router(backtest_router)
 app.include_router(settings_router)
 
 # ── WebSocket endpoints ───────────────────────────────────────────────────────
+from api.routes.knowledge import router as knowledge_router
+app.include_router(knowledge_router)
+
 from api.websocket.price_stream import ws_prices
 from api.websocket.agent_log_stream import ws_agent_log
+from api.websocket.order_stream import order_stream_ws
 
 
 @app.websocket("/ws/prices")
@@ -110,6 +114,11 @@ async def websocket_prices(websocket: WebSocket):
 @app.websocket("/ws/agents")
 async def websocket_agents(websocket: WebSocket):
     await ws_agent_log(websocket)
+
+
+@app.websocket("/ws/orders")
+async def websocket_orders(websocket: WebSocket):
+    await order_stream_ws(websocket)
 
 
 @app.get("/health")
