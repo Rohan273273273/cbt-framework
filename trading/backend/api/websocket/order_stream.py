@@ -6,14 +6,13 @@ import logging
 import redis.asyncio as aioredis
 from fastapi import WebSocket, WebSocketDisconnect
 
-from config import get_settings
+from config import settings
 
 logger = logging.getLogger(__name__)
 
 
 async def order_stream_ws(websocket: WebSocket) -> None:
     await websocket.accept()
-    settings = get_settings()
     redis = aioredis.from_url(settings.redis_url, decode_responses=True)
     pubsub = redis.pubsub()
     await pubsub.subscribe("fills")
