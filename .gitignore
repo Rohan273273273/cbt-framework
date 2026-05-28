@@ -44,3 +44,4 @@ strategies/*/Data/*.csv
 strategies/*/Data/*.parquet
 strategies/*/checkpoints/
 strategies/*/trades/
+trading/.env
