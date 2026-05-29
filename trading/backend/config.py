@@ -9,10 +9,11 @@ class Settings(BaseSettings):
     paper: bool = True
 
     # Databases
-    timescale_url: str
+    timescale_url: str = ""
+    timescale_password: str = ""      # used by Docker compose; ignored when timescale_url is set directly
     redis_url: str = "redis://redis:6379"
     neo4j_uri: str = "bolt://neo4j:7687"
-    neo4j_password: str
+    neo4j_password: str = ""
 
     # External APIs
     fred_api_key: str = ""
