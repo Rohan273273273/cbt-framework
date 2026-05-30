@@ -31,7 +31,7 @@ joblib==1.4.2
 
 # NLP / sentiment
 transformers==4.44.2
-torch==2.4.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.4.1
 sentencepiece==0.2.0
 
 # Data sources
