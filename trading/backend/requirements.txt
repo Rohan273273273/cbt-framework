@@ -20,8 +20,8 @@ pandas==2.2.3
 numpy==1.26.4
 numba==0.60.0
 
-# Technical analysis
-pandas-ta==0.3.14b0
+# Technical analysis (pandas-ta removed — incompatible with Python 3.11+)
+ta==0.11.0
 
 # Machine learning
 lightgbm==4.5.0
@@ -31,14 +31,14 @@ joblib==1.4.2
 
 # NLP / sentiment
 transformers==4.44.2
-torch==2.4.1
+torch==2.4.1+cpu --extra-index-url https://download.pytorch.org/whl/cpu
 sentencepiece==0.2.0
 
 # Data sources
 ccxt==4.3.90
 yfinance==0.2.43
 fredapi==0.5.2
-feedparser==6.0.11     # RSS feeds
+feedparser==6.0.10
 
 # Agents
 langgraph==0.2.28
@@ -54,4 +54,4 @@ python-dotenv==1.0.1
 # Utilities
 tqdm==4.66.5
 aiohttp==3.10.8
-tenacity==9.0.0        # retry logic
+tenacity==9.0.0
