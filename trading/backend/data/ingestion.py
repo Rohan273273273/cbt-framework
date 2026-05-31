@@ -1,7 +1,9 @@
 """
 Historical OHLCV ingestion.
-Primary: yfinance (reliable, no auth, 7yr history for crypto)
-Fallback: CCXT Binance
+Primary: yfinance (reliable, no auth)
+  - 15m: last 59 days (API hard limit)
+  - 1h/4h: last 729 days (resampled from 1h)
+Fallback: CCXT Kraken for older 1h data
 Idempotent: checks last stored timestamp before fetching.
 Resumable: saves checkpoint to /app/data/ingest_checkpoint.json
 """
@@ -142,30 +144,30 @@ def _fetch_yfinance(symbol: str, timeframe: str, start: datetime, end: datetime)
 
 
 def _fetch_ccxt(symbol: str, timeframe: str, start: datetime, end: datetime) -> List[Dict]:
-    """Fetch via CCXT Binance in 1000-bar batches."""
+    """Fetch via CCXT Kraken in 720-bar batches (Kraken max limit)."""
     import ccxt
 
-    exchange = ccxt.binance({"enableRateLimit": True})
-    ccxt_symbol = symbol.replace("/USD", "/USDT")
+    exchange = ccxt.kraken({"enableRateLimit": True})
+    ccxt_symbol = symbol  # Kraken uses BTC/USD directly
     tf_seconds = exchange.parse_timeframe(timeframe)
     tf_ms = tf_seconds * 1000
-    batch_size = 1000
+    batch_size = 720
 
     since_ms = int(start.timestamp() * 1000)
     end_ms = int(end.timestamp() * 1000)
     rows: List[Dict] = []
 
     while since_ms < end_ms:
-        print(f"  ccxt {ccxt_symbol} {timeframe} since {datetime.fromtimestamp(since_ms/1000, tz=timezone.utc).date()}", flush=True)
+        print(f"  kraken {ccxt_symbol} {timeframe} since {datetime.fromtimestamp(since_ms/1000, tz=timezone.utc).date()}", flush=True)
         try:
             candles = exchange.fetch_ohlcv(ccxt_symbol, timeframe, since=since_ms, limit=batch_size)
         except Exception as e:
-            print(f"  ccxt error: {e}", flush=True)
+            print(f"  kraken error: {e}", flush=True)
             time.sleep(5)
             break
 
         if not candles:
-            print(f"  ccxt returned empty", flush=True)
+            print(f"  kraken returned empty", flush=True)
             break
 
         print(f"  got {len(candles)} candles", flush=True)
@@ -178,7 +180,7 @@ def _fetch_ccxt(symbol: str, timeframe: str, start: datetime, end: datetime) -> 
             })
 
         since_ms = candles[-1][0] + tf_ms
-        time.sleep(exchange.rateLimit / 1000)
+        time.sleep(max(1.0, exchange.rateLimit / 1000))
 
     return rows
 
@@ -187,6 +189,12 @@ def ingest_symbol(symbol: str, timeframe: str, since_days: int = DEFAULT_SINCE_D
     """Fetch and store all bars for one symbol/timeframe. Returns rows written."""
     print(f"\n=== {symbol} {timeframe} ===", flush=True)
 
+    end = datetime.now(timezone.utc)
+
+    # yfinance hard limits: 59 days for 15m, 729 days for 1h/4h
+    yf_limit_days = YF_MAX_DAYS.get(timeframe, since_days)
+    yf_earliest = end - timedelta(days=yf_limit_days)
+
     last_ts = get_last_ohlcv_ts(symbol, timeframe)
     if last_ts:
         if last_ts.tzinfo is None:
@@ -194,17 +202,23 @@ def ingest_symbol(symbol: str, timeframe: str, since_days: int = DEFAULT_SINCE_D
         start = last_ts + timedelta(seconds=1)
         print(f"  resuming from {start.date()}", flush=True)
     else:
-        start = datetime.now(timezone.utc) - timedelta(days=since_days)
-        print(f"  starting from scratch ({start.date()})", flush=True)
-
-    end = datetime.now(timezone.utc)
+        # For yfinance, can't go further back than its limit
+        start = max(
+            end - timedelta(days=since_days),
+            yf_earliest
+        )
+        print(f"  starting from {start.date()} (yfinance limit: {yf_limit_days}d)", flush=True)
 
     if start >= end:
         print(f"  already up to date", flush=True)
         return 0
 
-    # Try yfinance first
-    rows = _fetch_yfinance(symbol, timeframe, start, end)
+    # Try yfinance (only works if start is within yf_earliest)
+    if start >= yf_earliest - timedelta(days=1):
+        rows = _fetch_yfinance(symbol, timeframe, start, end)
+    else:
+        print(f"  start {start.date()} beyond yfinance limit, using kraken directly", flush=True)
+        rows = []
     if not rows:
         print(f"  yfinance returned 0 rows, trying ccxt...", flush=True)
         rows = _fetch_ccxt(symbol, timeframe, start, end)
