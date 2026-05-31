@@ -18,20 +18,18 @@ neo4j==5.24.0
 polars==1.7.1
 pandas==2.2.3
 numpy==1.26.4
-numba==0.60.0
-
-# Technical analysis (pandas-ta removed — incompatible with Python 3.11+)
-ta==0.11.0
 
 # Machine learning
 lightgbm==4.5.0
-river==0.21.2
 scikit-learn==1.5.2
 joblib==1.4.2
 
+# Online learning
+river==0.21.2
+
 # NLP / sentiment
 transformers==4.44.2
-torch==2.4.1
+torch
 sentencepiece==0.2.0
 
 # Data sources
@@ -55,3 +53,4 @@ python-dotenv==1.0.1
 tqdm==4.66.5
 aiohttp==3.10.8
 tenacity==9.0.0
+ta==0.11.0
