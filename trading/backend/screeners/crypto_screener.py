@@ -20,7 +20,8 @@ def _relative_volume(candles) -> float:
         return 1.0
     vols = candles["volume"].fill_null(0).to_numpy()
     avg = vols[-21:-1].mean()
-    current = vols[-1]
+    # Use avg of last 3 bars to avoid partial/zero final bar skewing result
+    current = vols[-3:].mean() if len(vols) >= 3 else vols[-1]
     return float(current / avg) if avg > 0 else 1.0
 
 
@@ -67,10 +68,6 @@ def run_screener() -> List[ScreenerResult]:
             atr_pct = _atr_pct(candles)
             rsi = _rsi(candles)
             momentum = _momentum(candles)
-
-            # Filters
-            if atr_pct < 1.0 or rel_vol < 0.8:
-                continue
 
             # Score 0-100
             vol_score = min(30, rel_vol * 10)
