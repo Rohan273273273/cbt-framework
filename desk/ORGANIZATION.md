@@ -28,7 +28,8 @@ and a stop-loss** — delivered by **7:40 am Adelaide time**.
 Scans the prior US session for top gainers, unusual volume, breakouts, and sector
 leadership. Returns 8–12 liquid candidates with closing prices and reasons.
 Universe: S&P 500 / Nasdaq 100 constituents and high-profile liquid names —
-i.e., stocks actually tradeable as CFDs on Plus500. No microcaps, no OTC.
+i.e., stocks actually tradeable as CFDs on Plus500 (https://www.plus500.com/en-au/instruments).
+No microcaps, no OTC. Final picks are verified per `desk/PLUS500_UNIVERSE.md`.
 
 ### 2. Catalyst Scout (subagent)
 Finds event-driven setups for the upcoming session: earnings (pre-open and the

@@ -34,7 +34,12 @@ executed by Claude Code in a fresh session with no prior context.
    find support/resistance, set buy-at, sell-at target, stop-loss with
    reward:risk ≥ 1.5:1. Drop anything unverifiable or already over-extended.
 
-5. **Publish**:
+5. **Plus500 universe check** (see `desk/PLUS500_UNIVERSE.md`): every Top-3 candidate
+   must be verified as a Plus500 instrument — check the cached tables first, otherwise
+   WebSearch `site:plus500.com instruments <TICKER> <Company>`. Not listed ⇒ promote
+   the next verified candidate. Append newly checked tickers to the cache tables.
+
+6. **Publish**:
    - Write `desk/reports/YYYY-MM-DD.md` (Adelaide date) using
      `desk/templates/report-template.md`.
    - Commit with message `desk: daily picks YYYY-MM-DD` and push to
