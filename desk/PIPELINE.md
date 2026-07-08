@@ -9,9 +9,12 @@ executed by Claude Code in a fresh session with no prior context.
 - ⚠️ **Daylight saving**: when Adelaide switches to ACDT (UTC+10:30, first Sunday of
   October → first Sunday of April), the cron must move to **21:00 UTC**. See
   `SCHEDULE.md`.
-- At that hour the US market closed ~2 hours earlier; picks target the US session
-  that opens later the same Adelaide day (13:30 UTC winter / 14:30 UTC when the US
-  is off DST).
+- **Target market: ASX.** The ASX opens at 9:30 am Adelaide (10:00 am AEST) — the
+  report lands ~2 hours pre-open. Available inputs at fire time: yesterday's full ASX
+  session, the just-closed US session (~2h earlier), overnight commodities (oil, iron
+  ore, gold), SPI 200 futures, AUD/USD, and the morning's company announcements.
+- Buy-at levels are set relative to yesterday's ASX close with explicit gap guidance
+  (e.g., "buy at $X limit; if it gaps above $Y at open, stand aside").
 
 ## Steps
 
@@ -19,10 +22,15 @@ executed by Claude Code in a fresh session with no prior context.
    Read `desk/ORGANIZATION.md` for roles and the output contract.
 
 2. **Deploy scouts in parallel** (Agent tool, general-purpose, background):
-   - **Momentum Scout** — prior-session top gainers, unusual volume, breakouts,
-     sector leadership. 8–12 liquid Plus500-tradeable candidates with closing prices.
-   - **Catalyst Scout** — earnings due today / after-hours reactions, upgrades/
-     downgrades, company news, macro calendar for the session.
+   - **Momentum Scout (ASX)** — prior ASX session top gainers/volume/breakouts and
+     sector leadership, plus overnight leads (US close, oil/iron ore/gold, SPI 200
+     futures, AUD/USD). 8–12 liquid Plus500-tradeable ASX candidates with closing prices.
+   - **Catalyst Scout (ASX)** — today's company announcements, quarterlies, broker
+     upgrades/downgrades, M&A, trading halts, RBA/AU macro calendar, and overnight US
+     catalysts that set the tone.
+   Useful sources via WebSearch snippets: marketindex.com.au, fool.com.au,
+   kalkinemedia.com/au, stockhead.com.au, afr.com, investing.com AU. Note most of
+   these 403-block WebFetch — rely on search snippets and fetchable article pages.
 
    Both scouts must use **WebSearch/WebFetch only** for web data (the sandbox proxy
    blocks direct curl to finance sites). Use Alpha Vantage MCP tools first if quota

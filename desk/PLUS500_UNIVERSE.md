@@ -19,9 +19,22 @@ site:plus500.com instruments <TICKER> <Company Name>
 - No instrument-page results for the ticker ⇒ treat as **not listed** ❌ and replace
   the pick with the next-ranked verified candidate.
 
+## ASX instruments — `.CHA` suffix
+Plus500 lists Australian shares with a `.CHA` suffix (e.g. `STO.CHA` for Santos).
+Verify with: `site:plus500.com instruments <TICKER>.CHA <Company>`.
+Quirk: Woodside still trades under its pre-2022 ticker as **WPL.CHA** on Plus500
+(ASX ticker is WDS).
+
 ## Verified listed (checked 2026-07-08)
 | Ticker | Company | Evidence |
 |---|---|---|
+| **ASX (.CHA)** | | |
+| WPL.CHA (=ASX: WDS) | Woodside Energy | plus500.com/en-au/instruments/wpl.cha |
+| STO.CHA | Santos | plus500.com/en-au/instruments/sto.cha |
+| BHP.CHA | BHP | plus500.com/Instruments/BHP.CHA |
+| FMG.CHA | Fortescue | plus500.com/pt/instruments/fmg.cha |
+| QAN.CHA | Qantas | plus500.com/Instruments/QAN.CHA |
+| **US** | | |
 | XOM | ExxonMobil | plus500.com/en/instruments/xom |
 | NET | Cloudflare | plus500.com/en-SG/Instruments/NET |
 | FISV | Fiserv | plus500.com/en-es/instruments/fisv |

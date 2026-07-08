@@ -1,8 +1,9 @@
 # Plus500 Morning Desk — Organization
 
 A multi-agent research desk that produces one deliverable every morning:
-**the top 3 US stocks to buy today, each with a buy-at price, a sell-at (target) price,
-and a stop-loss** — delivered by **7:40 am Adelaide time**.
+**the top 3 AUSTRALIAN (ASX) stocks to buy today, each with a buy-at price, a sell-at
+(target) price, and a stop-loss** — delivered by **7:40 am Adelaide time**, before the
+ASX opens at 9:30 am Adelaide (10:00 am AEST).
 
 > ⚠️ For use with a **Plus500 demo account** only. This is automated research, not
 > financial advice. CFD prices on Plus500 can differ slightly from exchange prices
@@ -25,16 +26,20 @@ and a stop-loss** — delivered by **7:40 am Adelaide time**.
 ## Roles
 
 ### 1. Momentum Scout (subagent)
-Scans the prior US session for top gainers, unusual volume, breakouts, and sector
-leadership. Returns 8–12 liquid candidates with closing prices and reasons.
-Universe: S&P 500 / Nasdaq 100 constituents and high-profile liquid names —
-i.e., stocks actually tradeable as CFDs on Plus500 (https://www.plus500.com/en-au/instruments).
-No microcaps, no OTC. Final picks are verified per `desk/PLUS500_UNIVERSE.md`.
+Scans the prior ASX session for top gainers, unusual volume, breakouts, and sector
+leadership, plus the overnight leads that drive the ASX open: US session result,
+commodities (oil, iron ore, gold, copper), SPI 200 futures, AUD/USD. Returns 8–12
+liquid candidates with closing prices and reasons.
+Universe: ASX 200 constituents and liquid, well-known ASX names actually tradeable
+as CFDs on Plus500 (https://www.plus500.com/en-au/instruments — ASX instruments
+carry a `.CHA` suffix). No microcaps. Final picks are verified per
+`desk/PLUS500_UNIVERSE.md`.
 
 ### 2. Catalyst Scout (subagent)
-Finds event-driven setups for the upcoming session: earnings (pre-open and the
-prior evening's after-hours reactions), analyst upgrades/downgrades, M&A and
-company news, and the macro calendar (CPI, Fed, FOMC minutes, jobs data).
+Finds event-driven setups for today's ASX session: company announcements and
+quarterlies, broker upgrades/downgrades, M&A, trading halts, dividend/ex-dates,
+and the macro calendar (RBA decisions/minutes, Australian CPI/jobs data, plus
+overnight US catalysts — Fed, US CPI — that set the tone for the open).
 
 ### 3. Risk & Levels Analyst (subagent or lead)
 Takes the merged candidate list and works out entries and exits: recent
