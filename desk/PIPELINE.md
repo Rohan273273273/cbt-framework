@@ -21,16 +21,20 @@ executed by Claude Code in a fresh session with no prior context.
 1. **Setup**: `git checkout claude/plus500-trading-agents-4xn7wc && git pull`.
    Read `desk/ORGANIZATION.md` for roles and the output contract.
 
-2. **Deploy scouts in parallel** (Agent tool, general-purpose, background):
-   - **Momentum Scout (ASX)** — prior ASX session top gainers/volume/breakouts and
-     sector leadership, plus overnight leads (US close, oil/iron ore/gold, SPI 200
-     futures, AUD/USD). 8–12 liquid Plus500-tradeable ASX candidates with closing prices.
-   - **Catalyst Scout (ASX)** — today's company announcements, quarterlies, broker
-     upgrades/downgrades, M&A, trading halts, RBA/AU macro calendar, and overnight US
-     catalysts that set the tone.
-   Useful sources via WebSearch snippets: marketindex.com.au, fool.com.au,
-   kalkinemedia.com/au, stockhead.com.au, afr.com, investing.com AU. Note most of
-   these 403-block WebFetch — rely on search snippets and fetchable article pages.
+2. **Scout research — LEAN MODE (default).** ⚠️ This section supersedes any older
+   instruction (including the trigger prompt) that says to deploy scout subagents.
+   Scheduled runs from 9–13 July 2026 died mid-run on account usage limits because
+   each subagent burns 50–70k tokens; the desk now researches inline.
+   - Do the Momentum and Catalyst research YOURSELF with a budget of **max ~12
+     WebSearch queries + ~4 WebFetch calls total**, covering: prior ASX session
+     (index close, top gainers, sector leaders), overnight leads (US close, oil/iron
+     ore/gold, SPI 200 futures), today's company announcements/broker moves, and the
+     RBA/AU macro calendar.
+   - Useful sources via WebSearch snippets: marketindex.com.au, fool.com.au,
+     kalkinemedia.com/au, stockhead.com.au, afr.com, investing.com AU. Most of these
+     403-block WebFetch — rely on search snippets and fetchable article pages.
+   - Subagents are allowed ONLY if everything above succeeded quickly and quota is
+     clearly plentiful. Never run more than one.
 
    Both scouts must use **WebSearch/WebFetch only** for web data (the sandbox proxy
    blocks direct curl to finance sites). Use Alpha Vantage MCP tools first if quota
@@ -56,6 +60,16 @@ executed by Claude Code in a fresh session with no prior context.
    - **The final chat message must contain the full top-3 table** (ticker, buy at,
      sell at, stop, confidence) — this text is what reaches the user's phone/email
      notification. Do not just link the report.
+
+## Fail-safe (added 2026-07-13 after three silent scheduled-run failures)
+- **Never end a scheduled run silently.** If usage/rate limits, tool failures, or
+  data gaps strike mid-run, stop researching and immediately send the final message
+  with whatever is verified so far — even if that is only "the desk could not
+  produce picks today because X". A degraded report beats no report.
+- Budget discipline exists to survive account usage limits: if any tool starts
+  returning limit errors, skip straight to publishing with what you have.
+- Commit whatever report you produced before the final message; if git push fails
+  after retries, still send the final message with the picks inline.
 
 ## Hard rules
 - Never fabricate prices. Unverifiable price ⇒ label approximate or drop the pick.
