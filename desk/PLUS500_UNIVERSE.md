@@ -34,6 +34,8 @@ Quirk: Woodside still trades under its pre-2022 ticker as **WPL.CHA** on Plus500
 | BHP.CHA | BHP | plus500.com/Instruments/BHP.CHA |
 | FMG.CHA | Fortescue | plus500.com/pt/instruments/fmg.cha |
 | QAN.CHA | Qantas | plus500.com/Instruments/QAN.CHA |
+| ALD.CHA | Ampol | plus500.com/en-za/instruments/ald.cha |
+| CBA.CHA | Commonwealth Bank | plus500.com/en-bg/instruments/cba.cha (checked 2026-07-13) |
 | **US** | | |
 | XOM | ExxonMobil | plus500.com/en/instruments/xom |
 | NET | Cloudflare | plus500.com/en-SG/Instruments/NET |
