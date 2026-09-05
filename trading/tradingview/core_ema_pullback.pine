@@ -1,0 +1,65 @@
+//@version=6
+// CORE setup #3 from the operating prompt: pullback to a rising 9/21 EMA in a
+// name already up >15% over 20 sessions. Stop under the 21 EMA, 2R target,
+// 9 EMA trail once at +1R.
+//
+// Timeframe: Daily. Symbols: liquid, ADV > 1M (see BACKTEST_GUIDE.md).
+strategy("CORE - EMA Pullback (100to1000)", overlay = true,
+     initial_capital       = 100,
+     default_qty_type      = strategy.percent_of_equity,
+     default_qty_value     = 100,
+     commission_type       = strategy.commission.percent,
+     commission_value      = 0.0,
+     slippage              = 2,
+     calc_on_every_tick    = false,
+     process_orders_on_close = true)
+
+// ---- inputs (these are what you optimise) ----
+momLookback = input.int(20,   "Momentum lookback (bars)", minval = 5)
+momMin      = input.float(15, "Min % gain over lookback", step = 1)
+riskPct     = input.float(8,  "Risk per trade (% of equity)", step = 0.5)
+atrLen      = input.int(14,   "ATR length")
+stopAtrMult = input.float(0.5,"Stop = 21EMA minus N x ATR", step = 0.1)
+targetR     = input.float(2.0,"Target (R multiple)", step = 0.5)
+useTrail    = input.bool(true,"Trail with 9 EMA after +1R")
+minVol      = input.float(1e6,"Min average volume (shares)")
+
+ema9  = ta.ema(close, 9)
+ema21 = ta.ema(close, 21)
+ema50 = ta.ema(close, 50)
+atr   = ta.atr(atrLen)
+avgVol = ta.sma(volume, 20)
+
+// ---- regime: is this actually a strong name? ----
+momPct    = (close - close[momLookback]) / close[momLookback] * 100
+trendUp   = close > ema21 and ema21 > ema50 and ema21 > ema21[3]
+liquid    = avgVol > minVol
+strongName = trendUp and momPct > momMin and liquid
+
+// ---- the pullback: touched the 9/21 zone, closed back above the 9 ----
+touched   = low <= ema9 or low <= ema21
+reclaimed = close > ema9 and close > open
+entrySig  = strongName and touched and reclaimed
+
+// ---- R-based sizing: the stop distance sets the share count ----
+stopPrice = ema21 - stopAtrMult * atr
+riskPerShare = close - stopPrice
+qty = riskPerShare > 0 ? math.floor((strategy.equity * riskPct / 100) / riskPerShare) : 0
+
+if entrySig and strategy.position_size == 0 and qty > 0
+    strategy.entry("L", strategy.long, qty = qty)
+
+// ---- exits ----
+if strategy.position_size > 0
+    entryP  = strategy.position_avg_price
+    riskAmt = entryP - stopPrice
+    target  = entryP + targetR * riskAmt
+    strategy.exit("X", from_entry = "L", stop = stopPrice, limit = target)
+    // 9 EMA trail, but only once the trade is genuinely working
+    if useTrail and close > entryP + riskAmt and close < ema9
+        strategy.close("L", comment = "9EMA trail")
+
+plot(ema9,  "EMA 9",  color.new(color.aqua, 0))
+plot(ema21, "EMA 21", color.new(color.orange, 0))
+plot(ema50, "EMA 50", color.new(color.gray, 40))
+bgcolor(strongName ? color.new(color.green, 92) : na)

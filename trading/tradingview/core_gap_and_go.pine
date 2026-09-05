@@ -1,0 +1,80 @@
+//@version=6
+// CORE setup #1: gap >3% on >3x average volume, holds above the opening 15-min
+// high; entry on the reclaim, stop under the opening 15-min low.
+//
+// Timeframe: 5-minute. Free TradingView plans hold limited intraday history -
+// expect roughly 3-6 months of 5m bars, which is enough for a sanity check but
+// NOT enough to trust a win rate to two decimals. See BACKTEST_GUIDE.md.
+strategy("CORE - Gap and Go (100to1000)", overlay = true,
+     initial_capital       = 100,
+     default_qty_type      = strategy.percent_of_equity,
+     default_qty_value     = 100,
+     commission_type       = strategy.commission.percent,
+     commission_value      = 0.0,
+     slippage              = 3,
+     process_orders_on_close = true)
+
+gapMin     = input.float(3.0, "Min gap %", step = 0.5)
+volMult    = input.float(3.0, "Min opening volume vs 20d avg", step = 0.5)
+orMinutes  = input.int(15,    "Opening range (minutes)")
+riskPct    = input.float(10,  "Risk per trade (% of equity)", step = 0.5)
+targetR    = input.float(2.0, "Target (R multiple)", step = 0.5)
+flatByEOD  = input.bool(true, "Force flat at 15:55 ET")
+
+prevDayClose = request.security(syminfo.tickerid, "D", close[1],
+     lookahead = barmerge.lookahead_on)
+dayVolAvg    = request.security(syminfo.tickerid, "D", ta.sma(volume, 20)[1],
+     lookahead = barmerge.lookahead_on)
+
+inSession  = not na(time(timeframe.period, "0930-1600", "America/New_York"))
+newDay     = ta.change(time("D")) != 0
+sessionBar = ta.barssince(newDay)
+
+// bars that make up the opening range, given the chart's own timeframe
+barsPerOR  = math.max(math.round(orMinutes / math.max(timeframe.multiplier, 1)), 1)
+
+var float orHigh   = na
+var float orLow    = na
+var float dayOpen  = na
+var float cumVol   = na
+var bool  tradedTD = false
+
+if newDay
+    orHigh   := na
+    orLow    := na
+    dayOpen  := open
+    cumVol   := 0.0
+    tradedTD := false
+
+cumVol := nz(cumVol) + volume
+
+if inSession and sessionBar < barsPerOR
+    orHigh := na(orHigh) ? high : math.max(orHigh, high)
+    orLow  := na(orLow)  ? low  : math.min(orLow, low)
+
+gapPct   = na(prevDayClose) ? 0.0 : (dayOpen - prevDayClose) / prevDayClose * 100
+volOK    = na(dayVolAvg) ? false : cumVol > volMult * dayVolAvg * (barsPerOR / 78.0)
+gapOK    = gapPct > gapMin
+
+// entry: after the opening range is set, first close back above its high
+canTrade   = inSession and sessionBar >= barsPerOR and not na(orHigh) and not tradedTD
+breakout   = canTrade and gapOK and volOK and close > orHigh and close > open
+
+riskPerShare = close - orLow
+qty = riskPerShare > 0 ? math.floor((strategy.equity * riskPct / 100) / riskPerShare) : 0
+
+if breakout and strategy.position_size == 0 and qty > 0
+    strategy.entry("L", strategy.long, qty = qty)
+    tradedTD := true
+
+if strategy.position_size > 0
+    entryP  = strategy.position_avg_price
+    riskAmt = entryP - orLow
+    strategy.exit("X", from_entry = "L", stop = orLow, limit = entryP + targetR * riskAmt)
+
+eod = not na(time(timeframe.period, "1555-1600", "America/New_York"))
+if flatByEOD and eod and strategy.position_size > 0
+    strategy.close("L", comment = "EOD flat")
+
+plot(orHigh, "OR High", color.new(color.green, 0), style = plot.style_linebr)
+plot(orLow,  "OR Low",  color.new(color.red, 0),   style = plot.style_linebr)

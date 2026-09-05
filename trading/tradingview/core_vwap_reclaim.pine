@@ -1,0 +1,55 @@
+//@version=6
+// CORE setup #2: a strong name sells off intraday, then reclaims VWAP on rising
+// volume. Stop = VWAP loss on a 5-minute closing basis.
+//
+// Timeframe: 5-minute.
+strategy("CORE - VWAP Reclaim (100to1000)", overlay = true,
+     initial_capital       = 100,
+     default_qty_type      = strategy.percent_of_equity,
+     default_qty_value     = 100,
+     commission_type       = strategy.commission.percent,
+     commission_value      = 0.0,
+     slippage              = 3,
+     process_orders_on_close = true)
+
+volMult   = input.float(1.5, "Reclaim volume vs 20-bar avg", step = 0.1)
+minBelow  = input.int(3,     "Bars spent below VWAP first", minval = 1)
+riskPct   = input.float(10,  "Risk per trade (% of equity)", step = 0.5)
+targetR   = input.float(2.0, "Target (R multiple)", step = 0.5)
+atrLen    = input.int(14,    "ATR length")
+stopBuf   = input.float(0.25,"Stop = VWAP minus N x ATR", step = 0.05)
+dailyBias = input.bool(true, "Require price above the daily 21 EMA")
+
+vwapV  = ta.vwap(hlc3)
+atr    = ta.atr(atrLen)
+avgVol = ta.sma(volume, 20)
+
+dEma21 = request.security(syminfo.tickerid, "D", ta.ema(close, 21)[1],
+     lookahead = barmerge.lookahead_on)
+biasOK = not dailyBias or (not na(dEma21) and close > dEma21)
+
+inSession = not na(time(timeframe.period, "0945-1530", "America/New_York"))
+belowRun  = ta.barssince(close > vwapV)
+reclaim   = close > vwapV and close[1] <= vwapV[1] and volume > volMult * avgVol
+entrySig  = inSession and biasOK and reclaim and belowRun[1] >= minBelow
+
+stopPrice = vwapV - stopBuf * atr
+riskPerShare = close - stopPrice
+qty = riskPerShare > 0 ? math.floor((strategy.equity * riskPct / 100) / riskPerShare) : 0
+
+if entrySig and strategy.position_size == 0 and qty > 0
+    strategy.entry("L", strategy.long, qty = qty)
+
+if strategy.position_size > 0
+    entryP  = strategy.position_avg_price
+    riskAmt = entryP - stopPrice
+    strategy.exit("X", from_entry = "L", stop = stopPrice, limit = entryP + targetR * riskAmt)
+    // the rule is a CLOSING break of VWAP, not a wick through it
+    if close < vwapV and close[1] < vwapV[1]
+        strategy.close("L", comment = "VWAP lost")
+
+eod = not na(time(timeframe.period, "1555-1600", "America/New_York"))
+if eod and strategy.position_size > 0
+    strategy.close("L", comment = "EOD flat")
+
+plot(vwapV, "VWAP", color.new(color.yellow, 0), linewidth = 2)

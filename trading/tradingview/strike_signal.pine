@@ -1,0 +1,59 @@
+//@version=6
+// STRIKE signal measurement harness.
+//
+// You CANNOT backtest options in Pine - TradingView has no options chain. So
+// this script does the half that is measurable: it backtests the DIRECTIONAL
+// SIGNAL on the underlying with a FIXED holding period, which is exactly the
+// four numbers the local option simulator needs:
+//
+//     win rate, avg winning trade %, avg losing trade %, avg bars held
+//
+// Feed them to:  python3 sim/run_study.py --win-rate .. --avg-win .. \
+//                       --avg-loss .. --bars-held .. --atr-pct ..
+//
+// Deliberately NO stop loss: the option's -50% premium stop is modelled
+// downstream. Putting a second stop here would double-count it.
+strategy("STRIKE - Signal Harness (100to1000)", overlay = true,
+     initial_capital       = 100,
+     default_qty_type      = strategy.percent_of_equity,
+     default_qty_value     = 100,
+     commission_type       = strategy.commission.percent,
+     commission_value      = 0.0,
+     slippage              = 2,
+     process_orders_on_close = true)
+
+holdBars  = input.int(3,     "Fixed hold (bars)", minval = 1)
+mode      = input.string("Momentum breakout", "Signal",
+     options = ["Momentum breakout", "Squeeze expansion", "Trend continuation"])
+brkLen    = input.int(20,    "Breakout lookback")
+volMult   = input.float(1.5, "Volume vs 20-bar avg", step = 0.1)
+rsiMax    = input.float(78,  "Skip if RSI above", step = 1)
+atrLen    = input.int(14,    "ATR length")
+
+ema9   = ta.ema(close, 9)
+ema21  = ta.ema(close, 21)
+atr    = ta.atr(atrLen)
+avgVol = ta.sma(volume, 20)
+rsi    = ta.rsi(close, 14)
+bbW    = (ta.sma(close, 20) + 2 * ta.stdev(close, 20) -
+          (ta.sma(close, 20) - 2 * ta.stdev(close, 20))) / ta.sma(close, 20)
+
+momentum   = close > ta.highest(close[1], brkLen) and volume > volMult * avgVol
+squeeze    = bbW > ta.highest(bbW[1], 20) and close > ema21 and volume > volMult * avgVol
+continuation = close > ema9 and ema9 > ema21 and close[1] <= ema9[1] and close > open
+
+sig = mode == "Momentum breakout" ? momentum :
+      mode == "Squeeze expansion" ? squeeze : continuation
+entrySig = sig and rsi < rsiMax
+
+if entrySig and strategy.position_size == 0
+    strategy.entry("S", strategy.long)
+
+// fixed-horizon exit - this is what makes the stats translate to an option hold
+if strategy.position_size > 0 and (bar_index - strategy.opentrades.entry_bar_index(0)) >= holdBars
+    strategy.close("S", comment = "hold expired")
+
+// ATR% is the realized-vol input the option model needs; read it off this plot
+atrPct = atr / close * 100
+plot(atrPct, "ATR % (feed to --atr-pct)", display = display.data_window)
+plotchar(entrySig, "signal", "▲", location.belowbar, color.new(color.lime, 0), size = size.tiny)
